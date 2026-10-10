@@ -1,0 +1,13 @@
+### EURid EPP tests (pytest) ###
+Split off from eurid-robot-project.
+
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+Create .env with: ENV_NAME, EPP_HOST, EPP_PORT, EPP_USER, EPP_PWD (base64, see ./encode_password.sh), REGISTRAR_CONTACT
+
+### Run ###
+pytest                              # all EPP tests
+pytest -m smoke                     # smoke tests only
+pytest -m "not no_ipv6_available_in_office"
+ENV_FILE=.env.prod pytest -m smoke  # other env file
