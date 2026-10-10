@@ -1,0 +1,12 @@
+services:
+  pytest-eurid:
+    build: .
+    image: pytest-eurid:latest
+    container_name: pytest-eurid-container
+    volumes:
+      - ./docker-results:/opt/pytest/results
+    env_file:
+      - ${ENV_FILE:-.env}
+    environment:
+      - TZ=Europe/Amsterdam
+      - DOCKER_CONTAINER_RUN=true
