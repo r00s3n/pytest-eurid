@@ -40,28 +40,17 @@ def connect(config, request):
         try:
             client.connect()
         finally:
+            # shown in the HTML report and in junit.xml
             if client.ip:
-                # shown in the HTML report and in junit.xml
                 request.node.user_properties.append(("ip", client.ip))
+            if client.local_ip:
+                request.node.user_properties.append(("client_ip", client.local_ip))
         clients.append(client)
         return client
 
     yield _connect
     for c in clients:
         c.close()
-
-
-@pytest.fixture
-def session(credentials, connect):
-    """Connected client with greeting consumed and a successful login."""
-    client = connect()
-    client.receive()
-    client.send(render_template("session/login.xml",
-                                REGISTRAR_ALIAS=credentials["user"],
-                                PASSWORD=credentials["pwd"]))
-    response = client.receive()
-    assert result_code(response) == "1000", response
-    return client
 
 
 def _pretty(xml_text):
@@ -72,16 +61,17 @@ def _pretty(xml_text):
         return xml_text
 
 
-def _ips(item_or_report):
+def _prop(item_or_report, name):
     props = getattr(item_or_report, "user_properties", [])
-    return ", ".join(dict.fromkeys(v for k, v in props if k == "ip"))
+    return ", ".join(dict.fromkeys(v for k, v in props if k == name))
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    report.ip = _ips(item)
+    report.ip = _prop(item, "ip")
+    report.client_ip = _prop(item, "client_ip")
 
     # attach all EPP messages exchanged so far to the HTML report (setup phase included,
     # as pytest-html only shows details of the call phase for passing tests)
@@ -96,8 +86,10 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_html_results_table_header(cells):
-    cells.insert(2, "<th>IP address</th>")
+    cells.insert(2, "<th>Client IP</th>")
+    cells.insert(3, "<th>Server IP</th>")
 
 
 def pytest_html_results_table_row(report, cells):
-    cells.insert(2, f"<td>{getattr(report, 'ip', '')}</td>")
+    cells.insert(2, f"<td>{getattr(report, 'client_ip', '')}</td>")
+    cells.insert(3, f"<td>{getattr(report, 'ip', '')}</td>")
