@@ -43,7 +43,16 @@ class EPPClient:
         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        self.sock = ctx.wrap_socket(raw, server_hostname=self.host)
+        try:
+            self.sock = ctx.wrap_socket(raw, server_hostname=self.host)
+        except OSError as e:  # includes ssl.SSLError, e.g. SSLEOFError
+            raw.close()
+            raise ConnectionError(
+                f"Connected to {target} but the TLS handshake failed: {e}. "
+                "The server closed the connection, which usually means your public "
+                f"{'IPv6' if self.ipv6 else 'IPv4'} address is not whitelisted "
+                "(see 'Public IPv4/IPv6' in the report)."
+            ) from e
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
     def close(self):
