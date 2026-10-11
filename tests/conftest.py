@@ -28,13 +28,18 @@ def result_code(xml):
 
 
 @pytest.fixture
-def connect(config):
+def connect(config, request):
     """Factory: returns a connected client (greeting not yet read); closes on teardown."""
     clients = []
 
     def _connect(ipv6=False):
         client = EPPClient(config["host"], config["port"], ipv6=ipv6)
-        client.connect()
+        try:
+            client.connect()
+        finally:
+            if client.ip:
+                # shown in the HTML report and in junit.xml
+                request.node.user_properties.append(("ip", client.ip))
         clients.append(client)
         return client
 
@@ -54,3 +59,22 @@ def session(credentials, connect):
     response = client.receive()
     assert result_code(response) == "1000", response
     return client
+
+
+def _ips(item_or_report):
+    props = getattr(item_or_report, "user_properties", [])
+    return ", ".join(dict.fromkeys(v for k, v in props if k == "ip"))
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    outcome.get_result().ip = _ips(item)
+
+
+def pytest_html_results_table_header(cells):
+    cells.insert(2, "<th>IP address</th>")
+
+
+def pytest_html_results_table_row(report, cells):
+    cells.insert(2, f"<td>{getattr(report, 'ip', '')}</td>")

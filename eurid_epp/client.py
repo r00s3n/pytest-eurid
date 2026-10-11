@@ -15,6 +15,7 @@ class EPPClient:
         self.ipv6 = ipv6
         self.timeout = timeout
         self.sock = None
+        self.ip = None
 
     def connect(self):
         family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
@@ -27,6 +28,7 @@ class EPPClient:
                 "(hostname only: no https://, spaces or quotes) and your VPN/DNS."
             ) from e
         fam, socktype, proto, _, sockaddr = info[0]
+        self.ip = sockaddr[0]
         raw = socket.socket(fam, socktype, proto)
         raw.settimeout(self.timeout)
         try:
