@@ -4,6 +4,13 @@ import os
 from dotenv import load_dotenv
 
 
+class Secret(str):
+    """A str that hides itself in repr(), so pytest tracebacks don't show passwords."""
+
+    def __repr__(self):
+        return "'***'"
+
+
 def _decode_password(value):
     if not value:
         return ""
@@ -22,6 +29,6 @@ def load_config():
         "host": os.getenv("EPP_HOST", "").strip(),
         "port": os.getenv("EPP_PORT", "700").strip(),
         "user": os.getenv("EPP_USER", ""),
-        "pwd": _decode_password(os.getenv("EPP_PWD", "")),
+        "pwd": Secret(_decode_password(os.getenv("EPP_PWD", ""))),
         "registrar_contact": os.getenv("REGISTRAR_CONTACT", ""),
     }
