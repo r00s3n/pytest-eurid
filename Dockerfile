@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Default command: run only tests marked "smoke"
-CMD ["pytest", "-m", "smoke", "--junitxml=results/junit.xml"]
+CMD ["pytest", "-m", "smoke"]

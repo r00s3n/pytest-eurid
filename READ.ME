@@ -12,9 +12,12 @@ pytest -m smoke                     # smoke tests only
 pytest -m "not no_ipv6_available_in_office"
 ENV_FILE=.env.prod pytest -m smoke  # other env file
 
+### Reports ###
+Every run writes results/report.html and results/junit.xml
+
 ### Docker ###
 - create a .env file (same variables as above, EPP_PWD base64-encoded)
 - docker compose build
 - docker compose up
 - ENV_FILE=.env.prod docker compose up (use different .env file)
-- results (junit.xml) end up in docker-results
+- results (report.html, junit.xml) end up in docker-results
