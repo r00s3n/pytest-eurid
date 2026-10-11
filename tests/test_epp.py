@@ -16,7 +16,7 @@ def test_connect_ipv4(connect):
     assert greeting_sv_id(connect()) == "eurid.eu"
 
 
-@pytest.mark.no_ipv6_available_in_office
+@pytest.mark.smoke
 def test_connect_ipv6(connect):
     assert greeting_sv_id(connect(ipv6=True)) == "eurid.eu"
 

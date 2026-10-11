@@ -9,7 +9,7 @@ Create .env with: ENV_NAME, EPP_HOST, EPP_PORT, EPP_USER, EPP_PWD (base64, see .
 ### Run ###
 pytest                              # all EPP tests
 pytest -m smoke                     # smoke tests only
-pytest -m "not no_ipv6_available_in_office"
+pytest -m smoke -k "not ipv6"       # smoke tests without IPv6
 ENV_FILE=.env.prod pytest -m smoke  # other env file
 
 ### Reports ###
