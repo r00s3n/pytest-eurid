@@ -16,8 +16,6 @@ class EPPClient:
         self.ipv6 = ipv6
         self.timeout = timeout
         self.sock = None
-        self.ip = None  # server address
-        self.local_ip = None  # client (source) address
         # list of (direction, xml) tuples, passwords masked; used for the report
         self.transcript = transcript if transcript is not None else []
 
@@ -32,7 +30,6 @@ class EPPClient:
                 "(hostname only: no https://, spaces or quotes) and your VPN/DNS."
             ) from e
         fam, socktype, proto, _, sockaddr = info[0]
-        self.ip = sockaddr[0]
         raw = socket.socket(fam, socktype, proto)
         raw.settimeout(self.timeout)
         try:
@@ -46,7 +43,6 @@ class EPPClient:
         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        self.local_ip = raw.getsockname()[0]
         self.sock = ctx.wrap_socket(raw, server_hostname=self.host)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 

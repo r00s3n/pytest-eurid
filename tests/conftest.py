@@ -1,4 +1,5 @@
 import html
+import urllib.request
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 
@@ -37,14 +38,7 @@ def connect(config, request):
     def _connect(ipv6=False):
         transcript = request.node.__dict__.setdefault("epp_transcript", [])
         client = EPPClient(config["host"], config["port"], ipv6=ipv6, transcript=transcript)
-        try:
-            client.connect()
-        finally:
-            # shown in the HTML report and in junit.xml
-            if client.ip:
-                request.node.user_properties.append(("ip", client.ip))
-            if client.local_ip:
-                request.node.user_properties.append(("client_ip", client.local_ip))
+        client.connect()
         clients.append(client)
         return client
 
@@ -61,17 +55,10 @@ def _pretty(xml_text):
         return xml_text
 
 
-def _prop(item_or_report, name):
-    props = getattr(item_or_report, "user_properties", [])
-    return ", ".join(dict.fromkeys(v for k, v in props if k == name))
-
-
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    report.ip = _prop(item, "ip")
-    report.client_ip = _prop(item, "client_ip")
 
     # attach all EPP messages exchanged so far to the HTML report (setup phase included,
     # as pytest-html only shows details of the call phase for passing tests)
@@ -85,11 +72,19 @@ def pytest_runtest_makereport(item, call):
         ]
 
 
-def pytest_html_results_table_header(cells):
-    cells.insert(2, "<th>Client IP</th>")
-    cells.insert(3, "<th>Server IP</th>")
+def _public_ip(url):
+    try:
+        with urllib.request.urlopen(url, timeout=5) as r:
+            return r.read().decode().strip()
+    except Exception:
+        return "not available"
 
 
-def pytest_html_results_table_row(report, cells):
-    cells.insert(2, f"<td>{getattr(report, 'client_ip', '')}</td>")
-    cells.insert(3, f"<td>{getattr(report, 'ip', '')}</td>")
+@pytest.hookimpl(trylast=True)
+def pytest_configure(config):
+    """Show the public IPv4/IPv6 address of this computer in the report's environment table."""
+    from pytest_metadata.plugin import metadata_key
+
+    meta = config.stash[metadata_key]
+    meta["Public IPv4"] = _public_ip("https://api.ipify.org")
+    meta["Public IPv6"] = _public_ip("https://api6.ipify.org")

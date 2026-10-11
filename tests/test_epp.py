@@ -47,6 +47,14 @@ def test_successfully_login_to_epp_server_ipv4(connect, credentials):
 
 
 @pytest.mark.smoke
+def test_successfully_login_to_epp_server_ipv6(connect, credentials):
+    """Connect to the EPP server over IPv6 and login"""
+    client = connect(ipv6=True)
+    check_greeting(client)
+    login(client, credentials)
+
+
+@pytest.mark.smoke
 def test_successfully_update_registrant_contact_in_epp_ipv4(connect, credentials):
     """Connect, login, read the registrant contact, rename it and put the original name back"""
     client = connect()
