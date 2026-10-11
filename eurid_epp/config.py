@@ -19,8 +19,8 @@ def load_config():
         load_dotenv(os.getenv("ENV_FILE", ".env"))
     return {
         "env_name": os.getenv("ENV_NAME", ""),
-        "host": os.getenv("EPP_HOST", ""),
-        "port": os.getenv("EPP_PORT", "700"),
+        "host": os.getenv("EPP_HOST", "").strip(),
+        "port": os.getenv("EPP_PORT", "700").strip(),
         "user": os.getenv("EPP_USER", ""),
         "pwd": _decode_password(os.getenv("EPP_PWD", "")),
         "registrar_contact": os.getenv("REGISTRAR_CONTACT", ""),

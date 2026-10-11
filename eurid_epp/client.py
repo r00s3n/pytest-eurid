@@ -18,11 +18,25 @@ class EPPClient:
 
     def connect(self):
         family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
-        info = socket.getaddrinfo(self.host, self.port, family, socket.SOCK_STREAM)
+        target = f"{self.host!r} port {self.port} ({'IPv6' if self.ipv6 else 'IPv4'})"
+        try:
+            info = socket.getaddrinfo(self.host, self.port, family, socket.SOCK_STREAM)
+        except socket.gaierror as e:
+            raise ConnectionError(
+                f"Cannot resolve EPP_HOST {target}: {e}. Check EPP_HOST in your ENV_FILE "
+                "(hostname only: no https://, spaces or quotes) and your VPN/DNS."
+            ) from e
         fam, socktype, proto, _, sockaddr = info[0]
         raw = socket.socket(fam, socktype, proto)
         raw.settimeout(self.timeout)
-        raw.connect(sockaddr)
+        try:
+            raw.connect(sockaddr)
+        except OSError as e:
+            raw.close()
+            raise ConnectionError(
+                f"Cannot connect to EPP server {target}: {e}. "
+                "Check EPP_PORT, VPN and IP whitelisting."
+            ) from e
         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
