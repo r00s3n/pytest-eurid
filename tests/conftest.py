@@ -1,3 +1,5 @@
+import html
+import xml.dom.minidom
 import xml.etree.ElementTree as ET
 
 import pytest
@@ -33,7 +35,8 @@ def connect(config, request):
     clients = []
 
     def _connect(ipv6=False):
-        client = EPPClient(config["host"], config["port"], ipv6=ipv6)
+        transcript = request.node.__dict__.setdefault("epp_transcript", [])
+        client = EPPClient(config["host"], config["port"], ipv6=ipv6, transcript=transcript)
         try:
             client.connect()
         finally:
@@ -61,6 +64,14 @@ def session(credentials, connect):
     return client
 
 
+def _pretty(xml_text):
+    try:
+        pretty = xml.dom.minidom.parseString(xml_text.encode()).toprettyxml(indent="  ")
+        return "\n".join(line for line in pretty.splitlines() if line.strip())
+    except Exception:
+        return xml_text
+
+
 def _ips(item_or_report):
     props = getattr(item_or_report, "user_properties", [])
     return ", ".join(dict.fromkeys(v for k, v in props if k == "ip"))
@@ -69,7 +80,19 @@ def _ips(item_or_report):
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
-    outcome.get_result().ip = _ips(item)
+    report = outcome.get_result()
+    report.ip = _ips(item)
+
+    # attach all EPP messages exchanged so far to the HTML report (setup phase included,
+    # as pytest-html only shows details of the call phase for passing tests)
+    transcript = item.__dict__.get("epp_transcript", [])
+    if transcript:
+        from pytest_html import extras
+
+        parts = [f"<b>{html.escape(d)}</b>\n{html.escape(_pretty(x))}" for d, x in transcript]
+        report.extras = getattr(report, "extras", []) + [
+            extras.html("<pre>" + "\n\n".join(parts) + "</pre>")
+        ]
 
 
 def pytest_html_results_table_header(cells):

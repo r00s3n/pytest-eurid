@@ -1,3 +1,4 @@
+import re
 import socket
 import ssl
 import struct
@@ -9,13 +10,15 @@ TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 class EPPClient:
     """Minimal EPP-over-TLS client (RFC 5734 framing)."""
 
-    def __init__(self, host, port, ipv6=False, timeout=30):
+    def __init__(self, host, port, ipv6=False, timeout=30, transcript=None):
         self.host = host
         self.port = int(port)
         self.ipv6 = ipv6
         self.timeout = timeout
         self.sock = None
         self.ip = None
+        # list of (direction, xml) tuples, passwords masked; used for the report
+        self.transcript = transcript if transcript is not None else []
 
     def connect(self):
         family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
@@ -61,11 +64,18 @@ class EPPClient:
 
     def receive(self):
         total = struct.unpack("!I", self._recv_all(4))[0]
-        return self._recv_all(total - 4).decode("utf-8")
+        xml = self._recv_all(total - 4).decode("utf-8")
+        self.transcript.append(("received", mask_secrets(xml)))
+        return xml
 
     def send(self, xml):
+        self.transcript.append(("sent", mask_secrets(xml)))
         payload = xml.encode()
         self.sock.sendall(struct.pack("!I", len(payload) + 4) + payload)
+
+
+def mask_secrets(xml):
+    return re.sub(r"(<(?:\w+:)?(?:pw|newPW)>)[^<]*(</)", r"\1***\2", xml)
 
 
 def render_template(name, **placeholders):
